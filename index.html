@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اینفوگرافیک: تحلیل امنیتی دسترسی از راه دور با هوش مصنوعی</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            scroll-behavior: smooth;
+            background-color: #e2e8f0;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .flow-line-dashed {
+            background-image: linear-gradient(to bottom, #ef4444 60%, transparent 40%);
+            background-size: 2px 10px;
+            background-repeat: repeat-y;
+            width: 2px;
+            flex-grow: 1;
+        }
+        .flow-line-secure {
+             background-image: linear-gradient(to bottom, #22c55e 60%, transparent 40%);
+            background-size: 2px 10px;
+            background-repeat: repeat-y;
+            width: 2px;
+            flex-grow: 1;
+        }
+        .interactive-card {
+            transition: all 0.3s ease-in-out;
+        }
+        .interactive-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.15);
+        }
+        .gemini-output {
+            text-align: right;
+            line-height: 1.8;
+        }
+        .gemini-output ul {
+            list-style-type: none;
+            padding-right: 0;
+        }
+        .gemini-output strong {
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .loader {
+            width: 50px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 8px solid #f3f3f3;
+            border-right-color: #3b82f6;
+            animation: spin 1s infinite linear;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(1turn);
+            }
+        }
+        .material-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        .material-button:hover:not(:disabled) {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+            transform: translateY(-2px);
+        }
+        .material-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-section, #print-section * {
+                visibility: visible;
+            }
+            #print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 p-4 md:p-8">
+    <!-- Chosen Palette: "Calm & Collected" using a base of slate colors with blue for primary actions, red for risks, and green for security/solutions. -->
+    <!-- Application Structure Plan: A single-page, scrolling narrative SPA within a "deep frame" for focus. The flow begins with a prominent gradient header card, followed by a standout warning card to frame the problem. It then compares solutions (VPN vs. ZTNA) in visual diagrams, quantifies risks with charts, and concludes with an actionable checklist. This enhanced visual hierarchy, using Material Design principles of elevation and color, guides the user's attention more effectively. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Page Header -> Goal: Inform/Engage -> Viz: A "deep" gradient card with solid text (HTML/CSS) -> Interaction: N/A -> Justification: Creates a strong, professional first impression and visual anchor.
+        - Report Info: Core Problem Statement -> Goal: Alert/Inform -> Viz: A narrow, deep gradient "warning" card (HTML/CSS) -> Interaction: N/A -> Justification: Makes the core problem statement unmissable.
+        - Report Info: Core threats (Eavesdropping, etc.) -> Goal: Inform -> Viz: Icon-based cards with hover effects -> Interaction: Hover (lift effect) -> Justification: Enhances interactivity and visual feedback.
+        - Report Info: VPN vs. ZTNA -> Goal: Compare -> Viz: Side-by-side HTML/CSS flow diagrams in elevated cards -> Interaction: Hover (lift effect) -> Justification: Clear visual contrast with added depth.
+        - Report Info: Risks & Vulnerabilities -> Goal: Compare/Organize -> Viz: Bar/Donut Charts (Chart.js) in elevated cards -> Interaction: Tooltips, Hover (lift effect) -> Justification: Quantifies risks in an interactive, visually appealing format.
+        - Report Info: Security controls -> Goal: Inform/Organize -> Viz: Styled checklist in an elevated card -> Interaction: N/A -> Justification: Clean, actionable summary.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div class="container mx-auto bg-slate-50 rounded-2xl shadow-2xl p-4 md:p-8">
+
+        <header class="text-center -mt-16 md:-mt-24 mx-4 md:mx-12 mb-12 bg-gradient-to-br from-blue-900 to-blue-500 text-white p-8 md:p-12 rounded-xl shadow-2xl">
+            <h1 class="text-4xl md:text-5xl font-black mb-4">
+                تحلیل دسترسی از راه دور
+            </h1>
+            <p class="text-lg md:text-xl font-normal text-blue-100">یک راهنمای تعاملی برای متخصصان امنیت</p>
+        </header>
+
+        <main>
+            <section id="threats" class="my-16">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-3">بستر ارتباط: میدان نبرد نامرئی</h2>
+                     <div class="max-w-3xl mx-auto p-4 rounded-lg shadow-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-center">
+                        <p>هر اتصال ریموت از یک شبکه غیرقابل اعتماد (مانند اینترنت) عبور می‌کند، جایی که داده‌ها در معرض سه تهدید اصلی قرار دارند.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center mt-8">
+                    <div class="bg-white p-8 rounded-xl shadow-md interactive-card">
+                        <div class="text-5xl mb-4">👂</div>
+                        <h3 class="text-xl font-bold mb-2">شنود (Eavesdropping)</h3>
+                        <p class="text-slate-600">مهاجمان می‌توانند بسته‌های داده را در حین انتقال مشاهده کرده و اطلاعات حساس را سرقت کنند.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-md interactive-card">
+                        <div class="text-5xl mb-4">✍️</div>
+                        <h3 class="text-xl font-bold mb-2">دستکاری (Tampering)</h3>
+                        <p class="text-slate-600">داده‌ها در مسیر می‌توانند تغییر داده شوند تا دستورات مخرب به سیستم‌های داخلی ارسال شوند.</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-xl shadow-md interactive-card">
+                        <div class="text-5xl mb-4">🎭</div>
+                        <h3 class="text-xl font-bold mb-2">حمله Man-in-the-Middle</h3>
+                        <p class="text-slate-600">مهاجم خود را بین کاربر و سرور قرار می‌دهد و کل ارتباط را کنترل می‌کند.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="gemini-analyzer" class="my-16 bg-white p-6 md:p-8 rounded-xl shadow-lg interactive-card">
+                <div class="text-center mb-8">
+                   <h2 class="text-3xl font-bold mb-2">✨ تحلیلگر پویای تهدید</h2>
+                   <p class="max-w-3xl mx-auto text-slate-600">یک سناریوی دسترسی از راه دور را توصیف کنید تا هوش مصنوعی ریسک‌ها و کنترل‌های پیشنهادی را برای شما تحلیل کند.</p>
+               </div>
+               <div class="max-w-3xl mx-auto">
+                   <div class="mb-4">
+                       <label for="apiKeyInput" class="block mb-2 text-sm font-bold text-gray-700">
+                           🔑 کلید API گوگل (Gemini)
+                       </label>
+                       <input type="password" id="apiKeyInput" class="w-full p-2 border border-slate-300 rounded-lg shadow-inner" placeholder="کلید خود را اینجا وارد کنید...">
+                       <p class="text-xs text-slate-500 mt-1">
+                           برای استفاده از تحلیلگر، کلید API رایگان خود را از 
+                           <a href="https://aistudio.google.com/" target="_blank" class="text-blue-600 hover:underline">Google AI Studio</a>
+                           دریافت و اینجا وارد کنید.
+                       </p>
+                   </div>
+                   <textarea id="scenarioInput" class="w-full p-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-inner" rows="3" placeholder="مثال: یک کارمند از طریق وای‌فای عمومی فرودگاه با لپ‌تاپ شخصی خود به شبکه شرکت متصل می‌شود..."></textarea>
+                   <button id="analyzeScenarioBtn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center material-button">
+                       تحلیل کن
+                   </button>
+                   <div id="scenarioResultWrapper" class="mt-6">
+                        <div id="scenarioResult" class="bg-slate-100 rounded-lg min-h-[100px] border border-slate-200 flex items-center justify-center">
+                           <p class="text-slate-500 text-center p-4">نتایج تحلیل در اینجا نمایش داده خواهد شد.</p>
+                        </div>
+                   </div>
+                   <div id="detailedAnalysisResult" class="mt-4 hidden"></div>
+               </div>
+            </section>
+
+            <section id="architectures" class="my-16">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-2">مقایسه معماری‌ها: از قلعه تا اپلیکیشن</h2>
+                    <div class="max-w-3xl mx-auto p-4 mt-4 rounded-lg shadow-lg bg-gradient-to-r from-slate-700 to-slate-500 text-white font-semibold text-center">
+                        <p>رویکرد سازمان‌ها برای مدیریت دسترسی از راه دور، از یک مدل مبتنی بر اعتماد کامل به یک پارادایم "اعتماد صفر" تکامل یافته است.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mt-8">
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-lg border-b-8 border-red-500 interactive-card">
+                        <h3 class="text-2xl font-bold mb-4 text-center text-red-600">معماری سنتی: VPN</h3>
+                        <p class="text-slate-600 mb-6 text-center text-sm">کاربر پس از احراز هویت، به کل شبکه داخلی دسترسی پیدا می‌کند. این مدل، ریسک حرکت جانبی را به شدت افزایش می‌دهد.</p>
+                        
+                        <div class="flex flex-col items-center p-4 bg-red-50 rounded-lg h-full">
+                            <div class="font-bold text-lg">🚶‍♂️ کاربر</div>
+                            <div class="flow-line-dashed h-8"></div>
+                            <div class="p-2 bg-red-200 text-red-800 rounded-md font-semibold">تونل VPN</div>
+                            <div class="flow-line-dashed h-8"></div>
+                            <div class="w-full border-2 border-red-400 border-dashed rounded-lg p-4 flex-grow flex flex-col justify-center">
+                                <h4 class="text-center font-bold text-red-700 mb-4">شبکه داخلی سازمان</h4>
+                                <div class="flex justify-around items-center">
+                                    <div class="text-center"><div class="text-3xl md:text-4xl">💻</div><div class="text-xs">سرور مالی</div></div>
+                                    <div class="text-center"><div class="text-3xl md:text-4xl">🗄️</div><div class="text-xs">پایگاه داده</div></div>
+                                    <div class="text-center"><div class="text-3xl md:text-4xl">👥</div><div class="text-xs">سرور HR</div></div>
+                                </div>
+                                <p class="text-xs text-center mt-4 text-red-600 font-bold">⚠️ مهاجم در صورت نفوذ، به تمام منابع دسترسی دارد!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-lg border-b-8 border-green-500 interactive-card">
+                        <h3 class="text-2xl font-bold mb-4 text-center text-green-600">معماری مدرن: ZTNA</h3>
+                        <p class="text-slate-600 mb-6 text-center text-sm">اعتماد هرگز پیش‌فرض نیست. دسترسی به صورت میکروسگمنت و بر اساس هویت و سلامت دستگاه، فقط به اپلیکیشن‌های مجاز داده می‌شود.</p>
+
+                        <div class="flex flex-col items-center p-4 bg-green-50 rounded-lg h-full">
+                            <div class="font-bold text-lg">🚶‍♂️ کاربر + 📱 دستگاه</div>
+                            <div class="flow-line-secure h-8"></div>
+                            <div class="p-2 bg-green-200 text-green-800 rounded-md font-semibold">ZTNA Gateway</div>
+                            <div class="flow-line-secure h-8"></div>
+                            <div class="w-full border-2 border-green-400 border-dashed rounded-lg p-4 flex-grow flex flex-col justify-center">
+                                <h4 class="text-center font-bold text-green-700 mb-4">اپلیکیشن‌های مجاز</h4>
+                                <div class="flex justify-around items-center">
+                                    <div class="text-center opacity-30"><div class="text-3xl md:text-4xl">💻</div><div class="text-xs">سرور مالی</div></div>
+                                    <div class="text-center"><div class="text-3xl md:text-4xl">🗄️</div><div class="text-xs">پورتال مالی</div><div class="text-xs text-green-600 font-bold">✅ مجاز</div></div>
+                                    <div class="text-center opacity-30"><div class="text-3xl md:text-4xl">👥</div><div class="text-xs">سرور HR</div></div>
+                                </div>
+                                <p class="text-xs text-center mt-4 text-green-600 font-bold">✅ ریسک حرکت جانبی به حداقل می‌رسد.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="risks" class="my-16">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-lg interactive-card">
+                        <h3 class="text-xl font-bold text-center mb-2">مقایسه ریسک حرکت جانبی</h3>
+                        <p class="text-slate-600 text-center mb-4 text-sm">این نمودار پتانسیل یک مهاجم برای حرکت در شبکه پس از نفوذ اولیه را در دو معماری مقایسه می‌کند.</p>
+                        <div class="chart-container">
+                            <canvas id="riskComparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-lg interactive-card">
+                        <h3 class="text-xl font-bold text-center mb-2">بردارهای حمله به سرویس‌های عمومی</h3>
+                        <p class="text-slate-600 text-center mb-4 text-sm">پروتکل‌هایی مانند RDP اگر مستقیماً روی اینترنت قرار گیرند، اهداف اصلی مهاجمان هستند.</p>
+                        <div class="chart-container">
+                            <canvas id="vulnerabilityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="controls" class="my-16">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-2">چک‌لیست کنترل‌های امنیتی ضروری</h2>
+                    <p class="max-w-2xl mx-auto text-slate-600">برای هر نوع دسترسی از راه دور، اعمال این کنترل‌های کلیدی برای کاهش ریسک الزامی است.</p>
+                </div>
+                <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    <ul id="securityControlsList" class="space-y-4">
+                        <li class="flex items-start"><span class="text-green-500 text-2xl ml-4 mt-1">✓</span><div><h4 class="font-bold">احراز هویت چندعاملی (MFA):</h4><p class="text-slate-600">مهم‌ترین لایه دفاعی برای جلوگیری از حملات مبتنی بر سرقت رمز عبور.</p></div></li>
+                        <li class="flex items-start"><span class="text-green-500 text-2xl ml-4 mt-1">✓</span><div><h4 class="font-bold">اصل حداقل دسترسی (Least Privilege):</h4><p class="text-slate-600">کاربران فقط باید به منابعی دسترسی داشته باشند که برای انجام وظایفشان ضروری است.</p></div></li>
+                        <li class="flex items-start"><span class="text-green-500 text-2xl ml-4 mt-1">✓</span><div><h4 class="font-bold">استفاده از Bastion Host یا Gateway:</h4><p class="text-slate-600">هرگز سرویس‌های حساسی مانند RDP را مستقیماً روی اینترنت قرار ندهید.</p></div></li>
+                        <li class="flex items-start"><span class="text-green-500 text-2xl ml-4 mt-1">✓</span><div><h4 class="font-bold">بررسی سلامت دستگاه (Device Posture):</h4><p class="text-slate-600">اطمینان از به‌روز بودن سیستم‌عامل و فعال بودن آنتی‌ویروس قبل از اتصال.</p></div></li>
+                        <li class="flex items-start"><span class="text-green-500 text-2xl ml-4 mt-1">✓</span><div><h4 class="font-bold">رمزنگاری و مدیریت کلید قوی:</h4><p class="text-slate-600">استفاده از کلیدهای SSH به جای رمز عبور و رمزنگاری سرتاسری برای تمام ارتباطات.</p></div></li>
+                    </ul>
+                    <button id="generatePolicyBtn" class="mt-8 w-full bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center material-button">
+                        ✨ پیش‌نویس یک خط مشی امنیتی بر اساس این کنترل‌ها
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-16 mb-8 text-slate-500 text-sm">
+            <p>اپلیکیشن تعاملی تحلیل امنیتی دسترسی از راه دور | ۱۴۰۳</p>
+            <p>قابلیت‌های هوشمند توسط Gemini API ارائه شده است.</p>
+        </footer>
+    </div>
+
+    <div id="policyModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold">پیش‌نویس خط مشی دسترسی از راه دور</h3>
+                <button id="closeModalBtn" class="text-2xl font-bold text-slate-500 hover:text-slate-800 transition-colors">&times;</button>
+            </div>
+            <div id="policyResult" class="p-6 overflow-y-auto gemini-output">
+            </div>
+            <div class="p-4 border-t text-xs text-slate-500 bg-slate-50 rounded-b-lg">
+                <p>توجه: این یک پیش‌نویس تولید شده توسط هوش مصنوعی است. لطفاً قبل از استفاده رسمی، آن را توسط یک متخصص امنیت بازبینی و ویرایش کنید.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="print-section" class="hidden"></div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const defaultFont = {
+                family: 'Vazirmatn',
+                size: 12,
+            };
+            Chart.defaults.font.family = 'Vazirmatn';
+            
+            let currentScenario = '';
+
+            const wrapLabel = (label, maxLength = 16) => {
+                if (typeof label !== 'string' || label.length <= maxLength) {
+                    return label;
+                }
+                const words = label.split(' ');
+                const lines = [];
+                let currentLine = '';
+                for (const word of words) {
+                    if ((currentLine + ' ' + word).trim().length > maxLength) {
+                        lines.push(currentLine.trim());
+                        currentLine = word;
+                    } else {
+                        currentLine = (currentLine + ' ' + word).trim();
+                    }
+                }
+                if (currentLine) {
+                    lines.push(currentLine.trim());
+                }
+                return lines;
+            };
+
+            const tooltipTitleCallback = (tooltipItems) => {
+                const item = tooltipItems[0];
+                if (!item) return '';
+                let label = item.chart.data.labels[item.dataIndex];
+                if (Array.isArray(label)) {
+                    return label.join(' ');
+                }
+                return label;
+            };
+
+            const riskComparisonCtx = document.getElementById('riskComparisonChart').getContext('2d');
+            new Chart(riskComparisonCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['VPN سنتی', 'ZTNA مدرن'],
+                    datasets: [{
+                        label: 'ریسک حرکت جانبی',
+                        data: [85, 15],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(34, 197, 94, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(34, 197, 94, 1)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, max: 100, ticks: { callback: (value) => value + '%' } },
+                        y: { ticks: { font: defaultFont } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            rtl: true,
+                            callbacks: { title: tooltipTitleCallback }
+                        }
+                    }
+                }
+            });
+
+            const vulnerabilityCtx = document.getElementById('vulnerabilityChart').getContext('2d');
+            new Chart(vulnerabilityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        wrapLabel('حملات Brute-Force'),
+                        wrapLabel('بهره‌برداری از آسیب‌پذیری'),
+                        wrapLabel('پیکربندی ضعیف'),
+                        wrapLabel('سرقت اعتبارنامه')
+                    ],
+                    datasets: [{
+                        label: 'بردارهای حمله',
+                        data: [45, 25, 20, 10],
+                        backgroundColor: ['#ef4444', '#f97316', '#facc15', '#a855f7'],
+                        hoverOffset: 4,
+                        borderColor: '#f8fafc',
+                        borderWidth: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                font: defaultFont,
+                                boxWidth: 20
+                            }
+                        },
+                        tooltip: {
+                            rtl: true,
+                            callbacks: { title: tooltipTitleCallback }
+                        }
+                    }
+                }
+            });
+
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const analyzeScenarioBtn = document.getElementById('analyzeScenarioBtn');
+            const scenarioInput = document.getElementById('scenarioInput');
+            const scenarioResult = document.getElementById('scenarioResult');
+            const detailedAnalysisResult = document.getElementById('detailedAnalysisResult');
+            
+            const generatePolicyBtn = document.getElementById('generatePolicyBtn');
+            const policyModal = document.getElementById('policyModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const policyResult = document.getElementById('policyResult');
+
+            function showLoader(element) {
+                element.innerHTML = '<div class="loader"></div>';
+                element.classList.remove('p-4');
+            }
+
+            function getRiskBadge(level) {
+                const baseClasses = 'px-3 py-1 text-sm font-bold rounded-full text-white';
+                switch (level.toLowerCase()) {
+                    case 'high':
+                    case 'بالا':
+                        return `<span class="${baseClasses} bg-red-500">بالا</span>`;
+                    case 'medium':
+                    case 'متوسط':
+                        return `<span class="${baseClasses} bg-orange-500">متوسط</span>`;
+                    case 'low':
+                    case 'پایین':
+                        return `<span class="${baseClasses} bg-green-500">پایین</span>`;
+                    default:
+                        return `<span class="${baseClasses} bg-slate-500">${level}</span>`;
+                }
+            }
+
+            function renderStructuredAnalysis(data) {
+                let html = `<div id="analysis-content" class="p-4 md:p-6 space-y-6">`;
+
+                // Overall Risk
+                html += `
+                    <div class="text-center">
+                        <h3 class="text-lg font-bold text-slate-700 mb-2">سطح کلی ریسک سناریو</h3>
+                        ${getRiskBadge(data.overall_risk_level || 'نامشخص')}
+                    </div>
+                    <hr/>
+                `;
+
+                // Identified Risks
+                if (data.identified_risks && data.identified_risks.length > 0) {
+                    html += `<div><h3 class="text-xl font-bold text-slate-800 mb-4">🚨 ریسک‌های شناسایی‌شده</h3><div class="space-y-4">`;
+                    data.identified_risks.forEach(risk => {
+                        html += `
+                            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="text-lg font-bold text-red-700">${risk.risk_title}</h4>
+                                    ${getRiskBadge(risk.risk_level)}
+                                </div>
+                                <p class="text-slate-600">${risk.risk_description}</p>
+                                ${risk.impact ? `<p class="text-sm text-slate-500 mt-2"><strong>تأثیر احتمالی:</strong> ${risk.impact}</p>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                }
+
+                // Recommended Controls
+                if (data.recommended_controls && data.recommended_controls.length > 0) {
+                    html += `<div><h3 class="text-xl font-bold text-slate-800 mb-4">🛡️ کنترل‌های پیشنهادی</h3><div class="space-y-4">`;
+                    data.recommended_controls.forEach(control => {
+                        html += `
+                            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="text-lg font-bold text-green-700">${control.control_title}</h4>
+                                    ${getRiskBadge(control.implementation_priority)}
+                                </div>
+                                <p class="text-slate-600">${control.control_description}</p>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                }
+                
+                // Action Buttons
+                html += `
+                    <div class="flex flex-col md:flex-row gap-3 pt-4 border-t mt-6 no-print">
+                        <button id="copyAnalysisBtn" class="w-full md:w-1/3 bg-slate-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 material-button">
+                            <span>📄</span> کپی خلاصه
+                        </button>
+                        <button id="printAnalysisBtn" class="w-full md:w-1/3 bg-sky-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 material-button">
+                            <span>🖨️</span> چاپ
+                        </button>
+                        <button id="getDetailedAnalysisBtn" class="w-full md:w-1/3 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 material-button">
+                            <span>🔍</span> نمایش جزئیات کامل
+                        </button>
+                    </div>
+                `;
+
+                html += `</div>`;
+                scenarioResult.innerHTML = html;
+                scenarioResult.classList.add('p-0');
+                
+                document.getElementById('copyAnalysisBtn').addEventListener('click', () => copyAnalysisToClipboard(data));
+                document.getElementById('printAnalysisBtn').addEventListener('click', printAnalysis);
+                document.getElementById('getDetailedAnalysisBtn').addEventListener('click', getDetailedAnalysis);
+
+            }
+            
+            function copyAnalysisToClipboard(data) {
+                let text = `تحلیل امنیتی سناریو\n====================\n\n`;
+                text += `سطح کلی ریسک: ${data.overall_risk_level || 'نامشخص'}\n\n`;
+                
+                text += `🚨 ریسک‌های شناسایی‌شده:\n`;
+                if (Array.isArray(data.identified_risks)) {
+                    data.identified_risks.forEach(risk => {
+                        text += `\n- عنوان: ${risk.risk_title || ''} (سطح: ${risk.risk_level || ''})\n`;
+                        text += `  شرح: ${risk.risk_description || ''}\n`;
+                        if (risk.impact) text += `  تأثیر: ${risk.impact}\n`;
+                    });
+                }
+
+                text += `\n🛡️ کنترل‌های پیشنهادی:\n`;
+                if (Array.isArray(data.recommended_controls)) {
+                    data.recommended_controls.forEach(control => {
+                        text += `\n- عنوان: ${control.control_title || ''} (اولویت: ${control.implementation_priority || ''})\n`;
+                        text += `  شرح: ${control.control_description || ''}\n`;
+                    });
+                }
+                
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.top = "-9999px";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const btn = document.getElementById('copyAnalysisBtn');
+                    btn.innerHTML = '<span>✅</span> کپی شد!';
+                    setTimeout(() => {
+                         btn.innerHTML = '<span>📄</span> کپی خلاصه';
+                    }, 2000);
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                    const btn = document.getElementById('copyAnalysisBtn');
+                    btn.innerHTML = '<span>❌</span> خطا در کپی';
+                     setTimeout(() => {
+                         btn.innerHTML = '<span>📄</span> کپی خلاصه';
+                    }, 2000);
+                }
+                document.body.removeChild(textArea);
+            }
+
+            function printAnalysis() {
+                const printContent = document.getElementById('analysis-content').cloneNode(true);
+                document.getElementById('print-section').innerHTML = '';
+                document.getElementById('print-section').appendChild(printContent);
+                window.print();
+            }
+            
+            function parseMarkdown(text) {
+                try {
+                    const errorCheck = JSON.parse(text);
+                    if (errorCheck.error) {
+                        return `<p class="text-red-500 text-center p-4">${errorCheck.error}</p>`;
+                    }
+                } catch (e) {
+                    // Not an error JSON, proceed with markdown parsing
+                }
+
+                const blocks = text.split(/\n\s*\n/);
+                let html = '';
+
+                for (const block of blocks) {
+                    let trimmedBlock = block.trim();
+                    if (!trimmedBlock) continue;
+
+                    trimmedBlock = trimmedBlock.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    const lines = trimmedBlock.split('\n');
+                    const isList = lines.every(line => line.trim().startsWith('* '));
+
+                    if (isList) {
+                        html += '<ul class="space-y-2">';
+                        for (const line of lines) {
+                            html += `<li class="flex items-start"><span class="mr-2 mt-1 text-indigo-500 font-bold">-</span><span>${line.trim().substring(2)}</span></li>`;
+                        }
+                        html += '</ul>';
+                    } else {
+                        html += `<p class="mb-4">${trimmedBlock.replace(/\n/g, '<br>')}</p>`;
+                    }
+                }
+
+                return `<div class="gemini-output p-4 bg-white rounded-lg border border-slate-200 mt-4">${html}</div>`;
+            }
+
+            async function callGemini(prompt, isJson = false) {
+                const apiKey = apiKeyInput.value;
+                if (!apiKey) {
+                    return JSON.stringify({ error: "کلید API وارد نشده است. لطفاً کلید خود را از Google AI Studio دریافت و در فیلد مربوطه وارد کنید." });
+                }
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+                
+                if (isJson) {
+                    payload.generationConfig = {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "overall_risk_level": { "type": "STRING" },
+                                "identified_risks": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "risk_title": { "type": "STRING" },
+                                            "risk_description": { "type": "STRING" },
+                                            "risk_level": { "type": "STRING" },
+                                            "impact": { "type": "STRING" }
+                                        }
+                                    }
+                                },
+                                "recommended_controls": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "control_title": { "type": "STRING" },
+                                            "control_description": { "type": "STRING" },
+                                            "implementation_priority": { "type": "STRING" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                }
+                
+                analyzeScenarioBtn.disabled = true;
+                generatePolicyBtn.disabled = true;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+                    }
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        console.error("Unexpected API response structure:", result);
+                        return JSON.stringify({ error: "پاسخ نامعتبر از هوش مصنوعی دریافت شد." });
+                    }
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    if (error.message && error.message.includes('401')) {
+                        return JSON.stringify({ error: "خطا در احراز هویت (401). به نظر می‌رسد کلید API ارائه شده معتبر نیست یا دسترسی لازم را ندارد. لطفاً از صحت کلید API و فعال بودن سرویس اطمینان حاصل کنید." });
+                    }
+                    return JSON.stringify({ error: `خطا در برقراری ارتباط با سرویس هوش مصنوعی: ${error.message}` });
+                } finally {
+                    analyzeScenarioBtn.disabled = false;
+                    generatePolicyBtn.disabled = false;
+                }
+            }
+            
+            async function getDetailedAnalysis() {
+                detailedAnalysisResult.classList.remove('hidden');
+                showLoader(detailedAnalysisResult);
+                const prompt = `As a senior cybersecurity analyst, provide a detailed, educational, and descriptive analysis of the following remote access scenario. Explain the risks and controls in prose, like a report. The output must be in Persian, using Markdown for formatting (bold for titles, bullets for lists, and paragraphs separated by newlines). The scenario is: "${currentScenario}"`;
+                const resultText = await callGemini(prompt, false);
+                detailedAnalysisResult.innerHTML = parseMarkdown(resultText);
+            }
+
+            analyzeScenarioBtn.addEventListener('click', async () => {
+                currentScenario = scenarioInput.value;
+                detailedAnalysisResult.innerHTML = '';
+                detailedAnalysisResult.classList.add('hidden');
+
+                if (!currentScenario.trim()) {
+                    scenarioResult.innerHTML = '<p class="text-red-500 text-center p-4">لطفاً ابتدا یک سناریو را وارد کنید.</p>';
+                    return;
+                }
+                showLoader(scenarioResult);
+                const prompt = `As a senior cybersecurity analyst, analyze the following remote access scenario. Provide a structured JSON output. The JSON should contain: 'overall_risk_level' (string: "High", "Medium", or "Low"), an array 'identified_risks' (with objects having 'risk_title', 'risk_description', 'risk_level', 'impact'), and an array 'recommended_controls' (with objects having 'control_title', 'control_description', 'implementation_priority'). All text values must be in Persian. The scenario is: "${currentScenario}"`;
+                const resultText = await callGemini(prompt, true);
+                try {
+                    const resultJson = JSON.parse(resultText);
+                    if (resultJson.error) {
+                         scenarioResult.innerHTML = `<p class="text-red-500 text-center p-4">${resultJson.error}</p>`;
+                    } else {
+                        renderStructuredAnalysis(resultJson);
+                    }
+                } catch(e) {
+                    console.error("Failed to parse JSON response:", e);
+                    scenarioResult.innerHTML = `<p class="text-red-500 text-center p-4">خطا در پردازش پاسخ از سرور. لطفاً دوباره تلاش کنید.</p>`;
+                }
+            });
+
+            generatePolicyBtn.addEventListener('click', async () => {
+                const apiKey = apiKeyInput.value;
+                 if (!apiKey.trim()) {
+                    policyModal.classList.remove('hidden');
+                    policyModal.classList.add('flex');
+                    policyResult.innerHTML = '<p class="text-red-500 text-center p-4">برای تولید پیش‌نویس، لطفاً ابتدا کلید API خود را در بخش تحلیلگر وارد کنید.</p>';
+                    return;
+                }
+
+                policyModal.classList.remove('hidden');
+                policyModal.classList.add('flex');
+                showLoader(policyResult);
+                
+                const controls = Array.from(document.querySelectorAll('#securityControlsList h4')).map(h => h.textContent).join(', ');
+
+                const prompt = `Act as a senior cybersecurity policy writer. Based on these core principles: ${controls}, draft a formal Remote Access Policy document for a corporation. The policy should have clear sections: 1. Purpose, 2. Scope, 3. Policy Statements (elaborating on each control), 4. Roles and Responsibilities, 5. Enforcement. The output must be in Persian, using Markdown for formatting (bold for titles, bullets for lists).`;
+                const resultText = await callGemini(prompt);
+                policyResult.innerHTML = parseMarkdown(resultText);
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                policyModal.classList.add('hidden');
+                policyModal.classList.remove('flex');
+            });
+            
+            policyModal.addEventListener('click', (e) => {
+                 if (e.target === policyModal) {
+                    policyModal.classList.add('hidden');
+                    policyModal.classList.remove('flex');
+                 }
+            });
+
+        });
+    </script>
+</body>
+</html>
